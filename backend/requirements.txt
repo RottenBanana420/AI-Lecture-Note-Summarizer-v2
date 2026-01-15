@@ -1,0 +1,62 @@
+# Backend Dependencies (No Version Pinning)
+# Python 3.11+ required
+
+# Web Framework
+fastapi
+uvicorn[standard]
+python-multipart
+
+# Database
+sqlalchemy
+asyncpg
+psycopg2-binary
+alembic
+
+# Vector Database
+pgvector
+
+# Data Validation
+pydantic
+pydantic-settings
+email-validator
+
+# AI/ML
+transformers
+sentence-transformers
+torch
+spacy
+
+# PDF Processing
+pypdf2
+pdfplumber
+
+# Utilities
+python-dotenv
+httpx
+aiofiles
+
+# Testing
+pytest
+pytest-asyncio
+pytest-cov
+pytest-xdist
+pytest-mock
+faker
+
+# Code Quality
+black
+flake8
+mypy
+isort
+
+# Security
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+
+# Caching
+redis
+aioredis
+
+# Background Tasks
+celery[redis]
