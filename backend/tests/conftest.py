@@ -1,4 +1,16 @@
-"""Shared test fixtures and configuration."""
+"""Shared test fixtures and configuration.
+
+This module provides pytest fixtures for database testing with proper isolation.
+
+Fixture Scopes:
+- session: Created once per test session (test_engine, event_loop)
+- function: Created for each test function (db_session, sample_* fixtures)
+
+Best Practices:
+- Use db_session for all database operations to ensure transactional rollback
+- Sample fixtures create database records that are automatically cleaned up
+- Each test runs in isolation with its own transaction
+"""
 
 import pytest
 import asyncio
@@ -50,7 +62,19 @@ async def test_engine():
 
 @pytest.fixture
 async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
-    """Provide a transactional database session for tests."""
+    """Provide a transactional database session for tests.
+    
+    This fixture ensures test isolation by:
+    1. Creating a new connection for each test
+    2. Starting a transaction before the test
+    3. Rolling back the transaction after the test completes
+    
+    This means all database changes made during a test are automatically
+    discarded, ensuring tests don't affect each other.
+    
+    Scope: function (new session for each test)
+    Dependencies: test_engine (session-scoped)
+    """
     # Create a connection
     async with test_engine.connect() as connection:
         # Begin a transaction

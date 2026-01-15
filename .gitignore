@@ -43,6 +43,7 @@ virtualenv/
 .env.*.local
 .env.development
 .env.production
+.env.test
 
 # ============================================
 # IDE & Editors
