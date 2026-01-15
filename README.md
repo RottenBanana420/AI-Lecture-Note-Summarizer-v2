@@ -97,7 +97,7 @@ See [testing_strategy.md](docs/testing_strategy.md) for complete guide.
 
 ## Project Structure
 
-```
+```text
 .
 ├── backend/              # FastAPI application
 │   ├── app/

@@ -29,7 +29,7 @@ FastAPI backend for AI Lecture Note Summarizer with PostgreSQL, pgvector, and RA
 
 ## Structure
 
-```
+```text
 app/
 ├── core/              # Core configuration and utilities
 │   ├── config.py      # Application configuration
@@ -160,7 +160,7 @@ async def fetch_user(user_id: UUID):
 
 Current coverage: **77%**
 
-```
+```text
 app/core/exceptions.py      91%
 app/core/validators.py      80%
 app/db/db_utils.py          74%
