@@ -223,13 +223,14 @@ sequenceDiagram
 1. **Upload**: User uploads PDF via frontend
 2. **Validation**: Backend validates file type, size, permissions
 3. **Storage**: Save original file to storage system
-4. **Extraction**: PyPDF2/pdfplumber extracts text content
-5. **Preprocessing**: Clean text, remove artifacts, normalize whitespace
-6. **Chunking**: SpaCy-based semantic chunking with overlap
-7. **Embedding**: Generate vector embeddings for each chunk
-8. **Storage**: Store chunks + embeddings in PostgreSQL
-9. **Indexing**: HNSW index automatically updated
-10. **Notification**: User notified of completion
+4. **Extraction**: PyMuPDF (primary) or pdfplumber (fallback) extracts text content
+5. **Preprocessing**: Clean text, normalize unicode (NFC), and handle special characters
+6. **Normalization**: Whitespace and paragraph break management
+7. **Chunking**: SpaCy-based semantic chunking with overlap
+8. **Embedding**: Generate vector embeddings for each chunk
+9. **Storage**: Store chunks + embeddings in PostgreSQL
+10. **Indexing**: HNSW index automatically updated
+11. **Notification**: User notified of completion
 
 ### Query & Summarization Flow
 

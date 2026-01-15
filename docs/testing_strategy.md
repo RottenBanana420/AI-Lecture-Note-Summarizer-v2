@@ -450,15 +450,18 @@ jobs:
 backend/
 ├── tests/
 │   ├── unit/
+│   │   ├── test_pdf_extraction.py     # 27 tests for robust extraction
+│   │   ├── test_pdf_normalization.py  # 18 tests for text cleaning
 │   │   ├── test_chunking.py
 │   │   ├── test_embeddings.py
 │   │   └── test_utils.py
 │   ├── integration/
-│   │   ├── test_api_documents.py
-│   │   ├── test_database.py
-│   │   └── test_rag_pipeline.py
-│   ├── e2e/
-│   │   └── test_user_workflows.py
+│   │   ├── test_data_model_integrity.py
+│   │   ├── test_validation_failures.py
+│   │   └── test_error_handling.py
+│   ├── fixtures/
+│   │   ├── pdfs/                      # Complex PDF edge cases
+│   │   └── generate_test_pdfs.py      # Fixture generator
 │   ├── conftest.py  # Shared fixtures
 │   └── pytest.ini   # Configuration
 ```

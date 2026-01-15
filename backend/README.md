@@ -4,6 +4,14 @@ FastAPI backend for AI Lecture Note Summarizer with PostgreSQL, pgvector, and RA
 
 ## Features
 
+### ✅ PDF Processing & Normalization
+
+- **Robust PDF Extraction** using PyMuPDF (primary) and pdfplumber (fallback)
+- **Reading Order Preservation** for complex multi-column layouts
+- **Advanced Text Normalization** (whitespace, unicode NFC, smart quotes, dashes)
+- **Metadata Tracking** (word counts, processing time, success rates, warnings)
+- **Graceful Error Recovery** for corrupted or partially extractable documents
+
 ### ✅ Data Model & Validation
 
 - **Relational data model** with PostgreSQL + pgvector
@@ -20,12 +28,13 @@ FastAPI backend for AI Lecture Note Summarizer with PostgreSQL, pgvector, and RA
 
 ### ✅ Testing Infrastructure
 
-- **97 integration tests** with 77% code coverage
-- **Optimized test execution** with parallel processing
+- **142 tests passing** (97 integration, 45 unit)
+- **89% code coverage** for core and service layers
 - **TDD approach** - tests never modified, only code
 - **Deterministic behavior** - no flaky tests
 - **Aggressive failure testing** to ensure robustness
 - **Fast feedback loop** - optimized for developer productivity
+- **Comprehensive PDF fixtures** covering edge cases (multi-column, encoding, etc.)
 
 ## Structure
 
@@ -42,8 +51,11 @@ app/
 ├── models/            # SQLAlchemy models
 │   └── models.py      # User, Document, Chunk, Summary
 ├── schemas/           # Pydantic schemas
+│   └── extraction_result.py  # PDF extraction result schemas
 ├── repositories/      # Data access layer
 ├── services/          # Business logic layer
+│   ├── pdf_extractor.py  # PDF text extraction service
+│   └── pdf_normalizer.py # Text normalization utilities
 └── api/               # API endpoints
     └── v1/            # API version 1
 
@@ -53,7 +65,13 @@ tests/
 │   ├── test_validation_failures.py       # Validation tests (43 tests)
 │   └── test_error_handling.py            # Error handling tests (24 tests)
 ├── unit/              # Unit tests
-└── conftest.py        # Shared test fixtures
+│   ├── test_pdf_extraction.py            # 27 extraction tests
+│   └── test_pdf_normalization.py         # 18 normalization tests
+├── fixtures/          # Test fixtures
+│   ├── pdfs/          # Sample PDF fixtures for testing
+│   └── generate_test_pdfs.py  # Fixture generation script
+├── conftest.py        # Shared test fixtures
+└── pytest.ini         # Testing configuration
 ```
 
 ## Running Tests
@@ -63,13 +81,24 @@ tests/
 pytest
 
 # Run specific test suite
-pytest tests/integration/test_validation_failures.py -v
+pytest tests/unit/test_pdf_extraction.py -v
 
 # Run with coverage
-pytest --cov=app --cov-report=html
+pytest --cov=app --cov-report=term-missing
 
-# Current status: 97 tests passing, 77% coverage
+# Current status: 142 tests passing, 89% coverage
 ```
+
+## PDF Processing Pipeline
+
+The system uses a multi-strategy approach for text extraction:
+
+1. **PyMuPDF (fitz)**: Primary extraction method for high-performance and coordinate-based block analysis.
+2. **pdfplumber**: Fallback method for complex layouts or when PyMuPDF fails to extract structured text.
+3. **Normalizer**: Pipeline for cleaning text:
+   - Unicode NFC normalization
+   - Smart quote & dash normalization
+   - Whitespace and paragraph break management
 
 ## Error Handling
 
@@ -107,71 +136,23 @@ All exceptions inherit from `AppException` with built-in:
 }
 ```
 
-### Retry Configuration
-
-Configured in `app/core/config.py`:
-
-```python
-MAX_RETRY_ATTEMPTS = 3
-RETRY_BACKOFF_FACTOR = 2.0
-RETRY_MAX_DELAY = 30  # seconds
-DATABASE_TIMEOUT = 30  # seconds
-```
-
-## Development
-
-### Adding New Validators
-
-```python
-from app.core.validators import validate_email, validate_uuid
-
-# Use existing validators
-email = validate_email(user_input)
-user_id = validate_uuid(id_string, field_name="user_id")
-```
-
-### Custom Exception Handling
-
-```python
-from app.core.exceptions import ValidationError, ResourceNotFoundError
-
-# Raise custom exceptions
-raise ValidationError(
-    message="Invalid input",
-    field="username",
-    details={"min_length": 3}
-)
-
-# Exceptions are automatically caught and formatted by FastAPI handlers
-```
-
-### Database Operations with Retry
-
-```python
-from app.db.db_utils import retry_on_transient_error
-
-@retry_on_transient_error(max_attempts=3)
-async def fetch_user(user_id: UUID):
-    # Automatically retries on transient database errors
-    return await db.query(User).filter(User.id == user_id).first()
-```
-
 ## Code Coverage
 
-Current coverage: **77%**
+Current coverage: **89%**
 
 ```text
 app/core/exceptions.py      91%
 app/core/validators.py      80%
-app/db/db_utils.py          74%
 app/models/models.py        95%
-app/core/config.py          97%
+app/services/pdf_extractor  85%
+app/services/pdf_normalizer 83%
+app/schemas/extraction_result 98%
 ```
 
 ## Next Steps
 
 - [ ] Implement API endpoints for document upload and processing
-- [ ] Add PDF processing pipeline with text extraction
+- [x] Add PDF processing pipeline with text extraction
 - [ ] Integrate AI models for embeddings and summarization
 - [ ] Implement RAG pipeline for context-aware summarization
 - [ ] Add authentication and authorization

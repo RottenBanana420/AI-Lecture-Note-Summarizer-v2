@@ -27,8 +27,11 @@ torch
 spacy
 
 # PDF Processing
-pypdf2
-pdfplumber
+pypdf  # Actively maintained fork of PyPDF2
+pdfplumber  # Fallback for complex layouts
+PyMuPDF  # Primary extraction library (fitz)
+chardet  # Encoding detection
+pytesseract  # OCR support for scanned PDFs
 
 # Utilities
 python-dotenv
