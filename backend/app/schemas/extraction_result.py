@@ -73,6 +73,86 @@ class ExtractionMetadata(BaseModel):
     errors: List[str] = Field(default_factory=list, description="Global errors")
 
 
+class CleaningOptions(BaseModel):
+    """Configuration options for text cleaning."""
+    
+    model_config = ConfigDict(frozen=True)
+    
+    remove_headers_footers: bool = Field(default=True, description="Remove detected headers and footers")
+    remove_page_numbers: bool = Field(default=True, description="Remove page numbers")
+    remove_repeated_artifacts: bool = Field(default=True, description="Remove repeated artifacts like watermarks")
+    clean_formatting: bool = Field(default=True, description="Clean formatting remnants")
+    header_footer_threshold: float = Field(default=0.7, ge=0.0, le=1.0, description="Threshold for header/footer detection")
+    artifact_threshold: float = Field(default=0.7, ge=0.0, le=1.0, description="Threshold for repeated artifact detection")
+
+
+class CleaningMetadata(BaseModel):
+    """Metadata about text cleaning operations."""
+    
+    model_config = ConfigDict(frozen=True)
+    
+    headers_removed: List[str] = Field(default_factory=list, description="List of removed headers")
+    footers_removed: List[str] = Field(default_factory=list, description="List of removed footers")
+    page_numbers_removed: List[str] = Field(default_factory=list, description="List of removed page numbers")
+    artifacts_removed: List[str] = Field(default_factory=list, description="List of removed repeated artifacts")
+    formatting_cleaned: bool = Field(default=False, description="Whether formatting was cleaned")
+    total_removals: int = Field(default=0, ge=0, description="Total number of text removals")
+
+
+class SegmentationOptions(BaseModel):
+    """Configuration options for text segmentation."""
+    
+    model_config = ConfigDict(frozen=True)
+    
+    chunk_size_tokens: int = Field(default=256, ge=50, le=1024, description="Target chunk size in tokens")
+    overlap_percentage: float = Field(default=0.2, ge=0.0, le=0.5, description="Overlap between chunks (0.0-0.5)")
+    min_chunk_size: int = Field(default=50, ge=10, description="Minimum chunk size in tokens")
+    max_chunk_size: int = Field(default=512, ge=100, description="Maximum chunk size in tokens")
+    prefer_semantic_boundaries: bool = Field(default=True, description="Prefer paragraph/section breaks")
+    sentence_segmentation_model: str = Field(default="en_core_web_sm", description="spaCy model for sentence segmentation")
+
+
+class TextSegment(BaseModel):
+    """Individual text segment/chunk."""
+    
+    model_config = ConfigDict(frozen=True)
+    
+    segment_id: str = Field(..., description="Unique segment identifier")
+    text: str = Field(..., description="Segment text content")
+    start_char: int = Field(..., ge=0, description="Character offset in source text")
+    end_char: int = Field(..., ge=0, description="Character offset end in source text")
+    token_count: int = Field(..., ge=0, description="Estimated token count")
+    sentence_count: int = Field(..., ge=0, description="Number of sentences in segment")
+    has_semantic_boundary: bool = Field(default=False, description="Whether segment ends at semantic boundary")
+    overlap_with_previous: Optional[str] = Field(default=None, description="Overlap text with previous segment")
+    overlap_with_next: Optional[str] = Field(default=None, description="Overlap text with next segment")
+
+
+class SegmentationMetadata(BaseModel):
+    """Metadata about segmentation process."""
+    
+    model_config = ConfigDict(frozen=True)
+    
+    total_segments: int = Field(..., ge=0, description="Total number of segments created")
+    total_sentences: int = Field(..., ge=0, description="Total sentences across all segments")
+    avg_segment_size: float = Field(..., ge=0.0, description="Average segment size in tokens")
+    min_segment_size: int = Field(..., ge=0, description="Minimum segment size in tokens")
+    max_segment_size: int = Field(..., ge=0, description="Maximum segment size in tokens")
+    semantic_boundaries_used: int = Field(..., ge=0, description="Number of semantic boundaries respected")
+    segmentation_time_ms: float = Field(..., ge=0.0, description="Processing time in milliseconds")
+
+
+class SegmentationResult(BaseModel):
+    """Complete segmentation result."""
+    
+    model_config = ConfigDict(frozen=True)
+    
+    segments: List[TextSegment] = Field(default_factory=list, description="List of text segments")
+    metadata: SegmentationMetadata = Field(..., description="Segmentation metadata")
+    source_text_length: int = Field(..., ge=0, description="Original text length in characters")
+    segmented_at: datetime = Field(default_factory=datetime.utcnow, description="Segmentation timestamp")
+
+
 class ExtractionResult(BaseModel):
     """Complete PDF extraction result."""
     
@@ -84,6 +164,7 @@ class ExtractionResult(BaseModel):
     pages: List[PageResult] = Field(default_factory=list, description="Per-page results")
     metadata: ExtractionMetadata = Field(..., description="Extraction metadata")
     extracted_at: datetime = Field(default_factory=datetime.utcnow, description="Extraction timestamp")
+    cleaning_metadata: Optional[CleaningMetadata] = Field(default=None, description="Text cleaning metadata")
     
     @property
     def total_char_count(self) -> int:

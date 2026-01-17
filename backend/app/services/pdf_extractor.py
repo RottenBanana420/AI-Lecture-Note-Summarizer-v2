@@ -18,8 +18,10 @@ from app.schemas.extraction_result import (
     ExtractionStatus,
     ExtractionMethod,
     TextBlock,
+    CleaningOptions,
 )
 from app.services.pdf_normalizer import PDFNormalizer
+from app.services.pdf_cleaner import PDFCleaner
 
 
 class PDFExtractor:
@@ -33,13 +35,21 @@ class PDFExtractor:
     def __init__(self):
         """Initialize the PDF extractor."""
         self.normalizer = PDFNormalizer()
+        self.cleaner = PDFCleaner()
     
-    def extract_text(self, pdf_path: Union[str, Path]) -> ExtractionResult:
+    def extract_text(
+        self,
+        pdf_path: Union[str, Path],
+        apply_cleaning: bool = True,
+        cleaning_options: Optional[CleaningOptions] = None
+    ) -> ExtractionResult:
         """
         Extract text from a PDF file.
         
         Args:
             pdf_path: Path to the PDF file
+            apply_cleaning: Whether to apply text cleaning (default: True)
+            cleaning_options: Optional cleaning configuration
             
         Returns:
             ExtractionResult with extracted text and metadata
@@ -87,6 +97,18 @@ class PDFExtractor:
         raw_text = "\n\n".join(page.raw_text for page in pages)
         normalized_text = self.normalizer.normalize_text(raw_text)
         
+        # Apply cleaning if enabled
+        cleaning_metadata = None
+        final_text = normalized_text
+        if apply_cleaning:
+            if cleaning_options is None:
+                cleaning_options = CleaningOptions()
+            final_text, cleaning_metadata = self.cleaner.clean_text_with_metadata(
+                normalized_text,
+                pages,
+                cleaning_options
+            )
+        
         # Create complete metadata with all fields
         complete_metadata = ExtractionMetadata(
             total_pages=metadata.total_pages,
@@ -110,11 +132,12 @@ class PDFExtractor:
         
         return ExtractionResult(
             status=status,
-            text=normalized_text,
+            text=final_text,
             raw_text=raw_text,
             pages=pages,
             metadata=complete_metadata,
             extracted_at=datetime.utcnow(),
+            cleaning_metadata=cleaning_metadata,
         )
     
     def _extract_with_pymupdf(self, pdf_path: Path) -> tuple[List[PageResult], ExtractionMetadata]:

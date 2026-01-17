@@ -19,29 +19,31 @@ graph TB
     end
     
     subgraph "Processing Layer"
-        PDF[PDF Processor]
-        Chunk[Text Chunker]
+        PDF[PDF Extractor]
+        Clean[PDF Cleaner]
+        Segment[PDF Segmenter]
         Embed[Embedding Generator]
     end
-    
+
     subgraph "AI Layer"
         Retriever[Vector Retriever]
         Generator[LLM Generator]
         RAG[RAG Orchestrator]
     end
-    
+
     subgraph "Data Layer"
         PG[(PostgreSQL + pgvector)]
         Redis[(Redis Cache)]
         Storage[File Storage]
     end
-    
+
     UI -->|HTTPS| API
     API --> Auth
     API --> CORS
     API --> PDF
-    PDF --> Chunk
-    Chunk --> Embed
+    PDF --> Clean
+    Clean --> Segment
+    Segment --> Embed
     Embed --> PG
     API --> RAG
     RAG --> Retriever
@@ -149,7 +151,8 @@ CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);
 
 **Responsibilities:**
 
-- Document preprocessing and chunking
+- Document preprocessing and cleaning
+- Semantic text segmentation
 - Embedding generation
 - Semantic retrieval
 - Context-aware summarization
@@ -161,21 +164,23 @@ CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);
 sequenceDiagram
     participant U as User
     participant API as FastAPI
-    participant P as PDF Processor
-    participant C as Chunker
+    participant P as PDF Extractor
+    participant L as PDF Cleaner
+    participant S as PDF Segmenter
     participant E as Embedder
     participant DB as PostgreSQL
     participant R as Retriever
     participant G as Generator
-    
+
     U->>API: Upload PDF
     API->>P: Extract text
-    P->>C: Chunk text
-    C->>E: Generate embeddings
+    P->>L: Clean noise (watermarks/headers)
+    L->>S: Segment text (semantic chunks)
+    S->>E: Generate embeddings
     E->>DB: Store chunks + embeddings
     DB-->>API: Confirm storage
     API-->>U: Upload complete
-    
+
     U->>API: Request summary
     API->>R: Retrieve relevant chunks
     R->>DB: Vector similarity search
@@ -187,12 +192,18 @@ sequenceDiagram
 
 **Technology Justification:**
 
-**Chunking Strategy:**
+**Cleaning Strategy:**
 
-- **Semantic Chunking**: Respects document structure (paragraphs, sections)
-- **Chunk Size**: 256-512 tokens (optimal for retrieval accuracy)
-- **Overlap**: 50-100 token sliding window for context preservation
-- **SpaCy**: Sentence boundary detection for natural breaks
+- **Fuzzy Matching**: Detects repeated headers and footers across pages.
+- **Pattern Recognition**: Identifies watermarks (e.g., "DRAFT") and page numbers.
+- **Artifact Removal**: Cleans formatting remnants and orphaned bullets.
+
+**Segmentation Strategy:**
+
+- **Semantic Chunking**: Respects sentence boundaries and paragraph breaks.
+- **Chunk Size**: 512 tokens (target) with configurable overlap (10%).
+- **SpaCy**: Advanced sentence boundary detection.
+- **Deterministic**: ID generation based on content hash.
 
 **Embedding Models:**
 
@@ -221,12 +232,12 @@ sequenceDiagram
 ### Document Ingestion Flow
 
 1. **Upload**: User uploads PDF via frontend
-2. **Validation**: Backend validates file type, size, permissions
+2. **Validation**: Backend validates file type, size, permissions (50MB Limit)
 3. **Storage**: Save original file to storage system
-4. **Extraction**: PyMuPDF (primary) or pdfplumber (fallback) extracts text content
-5. **Preprocessing**: Clean text, normalize unicode (NFC), and handle special characters
-6. **Normalization**: Whitespace and paragraph break management
-7. **Chunking**: SpaCy-based semantic chunking with overlap
+4. **Extraction**: Hybrid approach with PyMuPDF/pdfplumber
+5. **Cleaning**: Remove headers, footers, and watermarks via `PDFCleaner`
+6. **Normalization**: Unicode NFC normalization and whitespace management
+7. **Segmentation**: `PDFSegmenter` creates semantically coherent chunks
 8. **Embedding**: Generate vector embeddings for each chunk
 9. **Storage**: Store chunks + embeddings in PostgreSQL
 10. **Indexing**: HNSW index automatically updated

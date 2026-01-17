@@ -61,6 +61,7 @@ virtualenv/
 # Testing & Coverage
 # ============================================
 .pytest_cache/
+.benchmarks/
 .coverage
 .coverage.*
 htmlcov/

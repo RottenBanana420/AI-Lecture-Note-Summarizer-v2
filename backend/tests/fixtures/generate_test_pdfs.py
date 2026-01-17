@@ -315,6 +315,73 @@ def create_multipage_pdf():
     print(f"✓ Created: {filepath}")
 
 
+def create_pdf_with_noise():
+    """Create PDF with realistic noise patterns for testing cleaning logic."""
+    filepath = OUTPUT_DIR / "pdf_with_noise.pdf"
+    
+    c = canvas.Canvas(str(filepath), pagesize=letter)
+    width, height = letter
+    
+    # Create 5 pages with consistent noise patterns
+    for page_num in range(1, 6):
+        # Header (consistent across all pages)
+        c.setFont("Helvetica", 9)
+        c.drawString(50, height - 30, "CS 101 - Introduction to Machine Learning")
+        c.drawString(width - 150, height - 30, "Fall 2025")
+        
+        # Watermark (repeated artifact)
+        c.setFont("Helvetica-Bold", 60)
+        c.setFillColorRGB(0.9, 0.9, 0.9)
+        c.saveState()
+        c.translate(width / 2, height / 2)
+        c.rotate(45)
+        c.drawCentredString(0, 0, "DRAFT")
+        c.restoreState()
+        c.setFillColorRGB(0, 0, 0)
+        
+        # Main content
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(50, height - 80, f"Lecture {page_num}: Neural Networks")
+        
+        c.setFont("Helvetica", 11)
+        y = height - 120
+        
+        content_lines = [
+            "This lecture covers the fundamentals of neural networks.",
+            "",
+            "Key Topics:",
+            "• Perceptrons and activation functions",
+            "• Backpropagation algorithm",
+            "• Gradient descent optimization",
+            "",
+            "Neural networks are computational models inspired by biological",
+            "neural networks. They consist of interconnected nodes (neurons)",
+            "organized in layers. Each connection has an associated weight",
+            "that adjusts during the learning process.",
+            "",
+            "The learning process involves:",
+            "1. Forward propagation of inputs",
+            "2. Calculation of error/loss",
+            "3. Backward propagation of gradients",
+            "4. Weight updates using optimization algorithms",
+        ]
+        
+        for line in content_lines:
+            c.drawString(50, y, line)
+            y -= 15
+        
+        # Footer (consistent across all pages)
+        c.setFont("Helvetica-Oblique", 8)
+        c.drawString(50, 40, "© 2025 University of AI | Confidential")
+        c.drawCentredString(width / 2, 40, f"Page {page_num} of 5")
+        c.drawString(width - 100, 40, "Do Not Distribute")
+        
+        c.showPage()
+    
+    c.save()
+    print(f"✓ Created: {filepath}")
+
+
 if __name__ == "__main__":
     print("Generating test PDF fixtures...")
     print(f"Output directory: {OUTPUT_DIR}\n")
@@ -328,6 +395,7 @@ if __name__ == "__main__":
         create_empty_pages_pdf()
         create_complex_layout_pdf()
         create_multipage_pdf()
+        create_pdf_with_noise()
         
         print(f"\n✓ Successfully generated {len(list(OUTPUT_DIR.glob('*.pdf')))} test PDFs")
     except Exception as e:
