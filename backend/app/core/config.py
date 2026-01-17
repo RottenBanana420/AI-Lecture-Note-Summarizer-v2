@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
     EMBEDDING_DIMENSION: int = 384
     
+    # Summarization Models
+    SUMMARIZATION_MODEL: str = "flan-t5-base"  # Default summarization model
+    SUMMARIZATION_MODEL_VERSION: Optional[str] = None  # Optional specific version
+    SUMMARIZATION_MAX_LENGTH: int = 150  # Maximum summary length in tokens
+    SUMMARIZATION_MIN_LENGTH: int = 30  # Minimum summary length in tokens
+    SUMMARIZATION_NUM_BEAMS: int = 4  # Number of beams for generation
+    
     # File Upload
     MAX_UPLOAD_SIZE: int = 50 * 1024 * 1024  # 50MB
     UPLOAD_DIR: str = "./uploads"

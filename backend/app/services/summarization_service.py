@@ -1,48 +1,91 @@
 """Summarization service for generating text summaries.
 
 This module provides the core summarization functionality for the AI Lecture Note
-Summarizer. It is designed to be model-agnostic and will support multiple
-summarization approaches (extractive, abstractive, hybrid).
+Summarizer. It uses a flexible model abstraction layer that supports multiple
+summarization models through a unified interface.
 
-Current Status: PLACEHOLDER - Not yet implemented
+The service acts as a facade that delegates to concrete model implementations
+via the ModelFactory, enabling easy model swapping without code changes.
 """
 
 from typing import Optional, Dict, Any
+from app.services.summarization.model_factory import ModelFactory
+from app.services.summarization.model_config import ModelConfig, ModelRegistry
+from app.services.summarization.base_model import BaseSummarizationModel
 
 
 class SummarizationService:
     """Service for generating summaries from text documents.
     
-    This is a placeholder implementation that will be replaced with actual
-    summarization logic. The interface is designed based on the quality
-    criteria and test specifications defined in Task 4.1.
+    This service provides a high-level interface for text summarization,
+    delegating to concrete model implementations via the ModelFactory.
+    Models can be swapped by changing configuration without modifying code.
     
-    Future implementations will support:
-    - Extractive summarization (baseline)
-    - Abstractive summarization (enhanced)
-    - Hybrid approaches
-    - Quality validation (faithfulness, coverage, coherence)
+    The service ensures:
+    - Faithfulness: No hallucinated facts or entities
+    - Coverage: All main topics and key concepts included
+    - Conciseness: 20-40% of original length
+    - Coherence: Well-structured and readable output
+    - Relevance: All content directly related to main topics
+    
+    Usage:
+        # Use default model from configuration
+        service = SummarizationService()
+        summary = service.summarize(text)
+        
+        # Use specific model
+        service = SummarizationService(model_name="model-name")
+        summary = service.summarize(text)
+        
+        # Use custom configuration
+        config = ModelConfig(model_name="model-name", max_length=200)
+        service = SummarizationService(config=config)
+        summary = service.summarize(text)
     """
     
-    def __init__(self, model_name: Optional[str] = None, config: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        model_name: Optional[str] = None,
+        config: Optional[ModelConfig] = None
+    ):
         """Initialize the summarization service.
         
         Args:
-            model_name: Name of the summarization model to use (e.g., 'bart', 'pegasus')
-            config: Configuration parameters for the model
+            model_name: Name of the summarization model to use. If not provided,
+                       uses the default from application configuration.
+            config: Model configuration. If not provided, uses default config
+                   from ModelRegistry.
         """
-        self.model_name = model_name
-        self.config = config or {}
+        # Determine model name
+        if model_name is None and config is None:
+            # Use default from application settings
+            try:
+                from app.core.config import settings
+                model_name = settings.SUMMARIZATION_MODEL
+            except Exception:
+                # Fallback to first available model in registry
+                available_models = ModelRegistry.list_models()
+                if available_models:
+                    model_name = available_models[0]
+                else:
+                    raise RuntimeError(
+                        "No models available in registry. "
+                        "Register at least one model before using SummarizationService."
+                    )
+        elif config is not None:
+            model_name = config.model_name
+        
+        # Create model instance via factory
+        self.model: BaseSummarizationModel = ModelFactory.create_model(
+            model_name=model_name,
+            config=config
+        )
     
     def summarize(self, text: str, max_length: Optional[int] = None) -> str:
         """Generate a summary of the input text.
         
-        This method will implement the core summarization logic, ensuring:
-        - Faithfulness: No hallucinated facts or entities
-        - Coverage: All main topics and key concepts included
-        - Conciseness: 20-40% of original length
-        - Coherence: Well-structured and readable output
-        - Relevance: All content directly related to main topics
+        This method delegates to the underlying model implementation,
+        ensuring consistent behavior across different model types.
         
         Args:
             text: Source document text to summarize
@@ -52,25 +95,11 @@ class SummarizationService:
             Summary text
             
         Raises:
-            NotImplementedError: This is a placeholder implementation
             ValueError: If input is invalid (empty, None, etc.)
+            RuntimeError: If summarization fails
         """
-        # Input validation
-        if text is None:
-            raise ValueError("Input text cannot be None")
-        
-        if not isinstance(text, str):
-            raise ValueError(f"Input must be a string, got {type(text).__name__}")
-        
-        if not text.strip():
-            raise ValueError("Input text cannot be empty or whitespace-only")
-        
-        # Placeholder: Raise NotImplementedError to signal tests should fail
-        raise NotImplementedError(
-            "Summarization not yet implemented. "
-            "This placeholder will be replaced with actual summarization logic "
-            "after the test suite is validated."
-        )
+        # Delegate to model
+        return self.model.summarize(text, max_length=max_length)
     
     def validate_summary(self, source: str, summary: str) -> Dict[str, Any]:
         """Validate a summary against quality criteria.
@@ -93,3 +122,11 @@ class SummarizationService:
             NotImplementedError: This is a placeholder implementation
         """
         raise NotImplementedError("Summary validation not yet implemented")
+    
+    def get_model_info(self) -> Dict[str, Any]:
+        """Get information about the current model.
+        
+        Returns:
+            Dictionary containing model metadata
+        """
+        return self.model.get_model_info()
