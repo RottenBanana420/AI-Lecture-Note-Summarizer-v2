@@ -1,0 +1,3 @@
+El aprendizaje automático es un subconjunto de la inteligencia artificial que permite a las computadoras aprender de los datos sin programación explícita. Fue pionero de Arthur Samuel en 1959, quien lo definió como el estudio de algoritmos que mejoran automáticamente a través de la experiencia.
+
+Hay tres tipos principales de aprendizaje automático: aprendizaje supervisado, aprendizaje no supervisado y aprendizaje por refuerzo. Cada enfoque sirve para diferentes propósitos y es adecuado para diferentes tipos de problemas.

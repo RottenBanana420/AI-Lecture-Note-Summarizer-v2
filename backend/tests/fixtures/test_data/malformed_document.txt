@@ -1,0 +1,7 @@
+###@@@ This is %%% corrupted $$$ text with ### special !!! characters %%%
+asdfjkl qwerty zxcvbn random characters
+��� invalid UTF-8 sequences ���
+Multiple     excessive        whitespace          issues
+	Tabs	and	weird	formatting
+ALLCAPSTEXT WITH NO SPACES OR PUNCTUATION MAKING IT HARD TO PARSE
+repeating repeating repeating repeating repeating repeating words

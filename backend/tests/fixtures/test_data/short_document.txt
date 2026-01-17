@@ -1,0 +1,1 @@
+Machine learning is a subset of artificial intelligence that enables computers to learn from data. It was pioneered by Arthur Samuel in 1959 and has three main types: supervised, unsupervised, and reinforcement learning.

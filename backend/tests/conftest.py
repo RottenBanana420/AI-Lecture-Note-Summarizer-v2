@@ -209,3 +209,68 @@ async def sample_summary(db_session: AsyncSession, sample_document, sample_user,
     await db_session.flush()
     await db_session.refresh(summary)
     return summary
+
+
+# ============================================================================
+# Summarization Test Fixtures
+# ============================================================================
+
+@pytest.fixture
+def test_documents():
+    """Load test documents from fixtures/test_data directory.
+    
+    Returns:
+        Dictionary mapping document names to their content
+    """
+    import os
+    from pathlib import Path
+    
+    test_data_dir = Path(__file__).parent / "fixtures" / "test_data"
+    documents = {}
+    
+    document_files = [
+        "standard_document.txt",
+        "short_document.txt",
+        "long_document.txt",
+        "empty_document.txt",
+        "malformed_document.txt",
+        "non_english_document.txt",
+    ]
+    
+    for filename in document_files:
+        filepath = test_data_dir / filename
+        if filepath.exists():
+            with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+            # Use filename without extension as key
+            key = filename.replace("_document.txt", "")
+            documents[key] = content
+    
+    return documents
+
+
+@pytest.fixture
+def summarization_service():
+    """Provide a SummarizationService instance for testing.
+    
+    This fixture returns the placeholder service that raises NotImplementedError.
+    Tests should expect this behavior until actual implementation is added.
+    """
+    from app.services.summarization_service import SummarizationService
+    return SummarizationService()
+
+
+@pytest.fixture
+def quality_metrics():
+    """Placeholder fixture for future quality metric calculations.
+    
+    This will eventually provide functions to calculate:
+    - ROUGE scores
+    - BERTScore
+    - QA-based faithfulness
+    - Coverage metrics
+    
+    For now, returns None to indicate metrics are not yet implemented.
+    """
+    return None
+
