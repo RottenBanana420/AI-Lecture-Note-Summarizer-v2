@@ -25,6 +25,9 @@ from app.schemas.extraction_result import SegmentationOptions
 # Test fixtures directory
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "pdfs"
 
+# Mark all tests in this module as performance tests
+pytestmark = [pytest.mark.performance]
+
 
 def get_memory_usage_mb():
     """Get current process memory usage in MB."""

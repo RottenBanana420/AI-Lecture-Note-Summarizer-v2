@@ -24,6 +24,9 @@ from app.schemas.extraction_result import CleaningOptions, SegmentationOptions
 # Test fixtures directory
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "pdfs"
 
+# Mark all tests in this module as stress tests
+pytestmark = [pytest.mark.stress]
+
 
 class TestLargeDocuments:
     """Test handling of very large documents."""
@@ -98,7 +101,11 @@ class TestLargeDocuments:
 
 
 class TestErrorIsolation:
-    """Test failure isolation and error handling."""
+    """Test failure isolation and error handling.
+    
+    Note: Basic error handling (FileNotFoundError for missing files) is tested
+    in test_pdf_extraction.py. This class focuses on error isolation behavior.
+    """
     
     def test_corrupted_pdf_doesnt_crash_pipeline(self):
         """Corrupted PDF should fail gracefully without crashing."""
@@ -112,13 +119,6 @@ class TestErrorIsolation:
         except Exception as e:
             # Should raise a specific exception, not crash
             assert isinstance(e, (FileNotFoundError, TypeError, ValueError))
-    
-    def test_missing_file_error_handling(self):
-        """Missing file should raise appropriate error."""
-        extractor = PDFExtractor()
-        
-        with pytest.raises(FileNotFoundError):
-            extractor.extract_text(FIXTURES_DIR / "nonexistent.pdf")
     
     def test_empty_pdf_handling(self):
         """Empty PDF should be handled gracefully."""
@@ -167,7 +167,11 @@ class TestErrorIsolation:
 
 
 class TestMemoryPressure:
-    """Test memory stress scenarios."""
+    """Test memory stress scenarios.
+    
+    Note: Basic memory cleanup tests are in test_performance.py (TestMemoryUsage).
+    This class focuses on more aggressive stress scenarios.
+    """
     
     def test_sequential_large_pdf_processing(self):
         """Should handle multiple large PDFs sequentially without memory issues."""
@@ -183,31 +187,6 @@ class TestMemoryPressure:
             gc.collect()
         
         # Should complete all iterations without memory errors
-    
-    def test_memory_released_between_documents(self):
-        """Memory should be released between document processing."""
-        import psutil
-        process = psutil.Process(os.getpid())
-        
-        extractor = PDFExtractor()
-        pdf_path = FIXTURES_DIR / "pdf_with_noise.pdf"
-        
-        # Get baseline memory
-        gc.collect()
-        mem_baseline = process.memory_info().rss / 1024 / 1024
-        
-        # Process multiple documents
-        for _ in range(5):
-            result = extractor.extract_text(pdf_path)
-            assert result.status.value == "success"
-            gc.collect()
-        
-        # Check memory after processing
-        mem_after = process.memory_info().rss / 1024 / 1024
-        mem_growth = mem_after - mem_baseline
-        
-        # Memory should not grow excessively (allow 50MB for caches)
-        assert mem_growth < 50, f"Memory grew by {mem_growth:.1f}MB, expected <50MB"
     
     def test_concurrent_large_pdf_processing(self):
         """Should handle concurrent processing of large PDFs."""

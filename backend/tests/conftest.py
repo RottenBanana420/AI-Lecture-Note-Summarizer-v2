@@ -2,6 +2,22 @@
 
 This module provides pytest fixtures for database testing with proper isolation.
 
+Test Suite Organization
+=======================
+
+Integration Tests (tests/integration/):
+- test_data_model_integrity.py: Database schema constraints (FK, unique, check constraints)  
+- test_error_handling.py: Exception translation, retry logic, transient error detection
+- test_validation_failures.py: Validator functions for inputs (UUID, email, files, etc.)
+
+Unit Tests (tests/unit/):
+- test_pdf_extraction.py: PDF text extraction logic
+- test_pdf_normalization.py: Text normalization (whitespace, unicode)
+- test_pdf_cleaning.py: Header/footer removal, noise removal
+- test_pdf_segmentation.py: Text segmentation and chunking
+- test_performance.py: Performance benchmarks and memory usage
+- test_stress.py: Stress testing and edge cases
+
 Fixture Scopes:
 - session: Created once per test session (test_engine, event_loop)
 - function: Created for each test function (db_session, sample_* fixtures)

@@ -11,12 +11,10 @@ Test Categories:
 """
 
 import pytest
-import uuid
-import numpy as np
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, DataError
 
-from app.models.models import User, Document, Chunk, Summary
+from app.models.models import User, Document
 from app.core.validators import (
     validate_uuid,
     validate_email,
@@ -111,87 +109,11 @@ class TestInvalidEmails:
 
 
 class TestInvalidNumericalValues:
-    """Test that negative/zero values are properly rejected for positive-only fields."""
+    """Test that negative/zero values are properly rejected by validators.
     
-    async def test_document_with_negative_file_size(self, db_session: AsyncSession, sample_user):
-        """Document with negative file_size should raise IntegrityError."""
-        document = Document(
-            user_id=sample_user.id,
-            filename="test.pdf",
-            file_path="/test.pdf",
-            file_size=-1000,  # NEGATIVE
-            content_hash="x" * 64,
-            mime_type="application/pdf",
-            processing_status="pending",
-        )
-        
-        db_session.add(document)
-        
-        with pytest.raises((IntegrityError, DataError)) as exc_info:
-            await db_session.flush()
-        
-        error_msg = str(exc_info.value).lower()
-        assert "check" in error_msg or "constraint" in error_msg or "violates" in error_msg
-    
-    async def test_document_with_zero_file_size(self, db_session: AsyncSession, sample_user):
-        """Document with zero file_size should raise IntegrityError."""
-        document = Document(
-            user_id=sample_user.id,
-            filename="test.pdf",
-            file_path="/test.pdf",
-            file_size=0,  # ZERO
-            content_hash="y" * 64,
-            mime_type="application/pdf",
-            processing_status="pending",
-        )
-        
-        db_session.add(document)
-        
-        with pytest.raises((IntegrityError, DataError)) as exc_info:
-            await db_session.flush()
-        
-        error_msg = str(exc_info.value).lower()
-        assert "check" in error_msg or "constraint" in error_msg or "violates" in error_msg
-    
-    async def test_chunk_with_negative_token_count(self, db_session: AsyncSession, sample_document):
-        """Chunk with negative token_count should raise IntegrityError."""
-        embedding = np.random.rand(384).tolist()
-        
-        chunk = Chunk(
-            document_id=sample_document.id,
-            content="Test content",
-            embedding=embedding,
-            chunk_index=100,
-            token_count=-50,  # NEGATIVE
-        )
-        
-        db_session.add(chunk)
-        
-        with pytest.raises((IntegrityError, DataError)) as exc_info:
-            await db_session.flush()
-        
-        error_msg = str(exc_info.value).lower()
-        assert "check" in error_msg or "constraint" in error_msg or "violates" in error_msg
-    
-    async def test_chunk_with_zero_token_count(self, db_session: AsyncSession, sample_document):
-        """Chunk with zero token_count should raise IntegrityError."""
-        embedding = np.random.rand(384).tolist()
-        
-        chunk = Chunk(
-            document_id=sample_document.id,
-            content="Test content",
-            embedding=embedding,
-            chunk_index=101,
-            token_count=0,  # ZERO
-        )
-        
-        db_session.add(chunk)
-        
-        with pytest.raises((IntegrityError, DataError)) as exc_info:
-            await db_session.flush()
-        
-        error_msg = str(exc_info.value).lower()
-        assert "check" in error_msg or "constraint" in error_msg or "violates" in error_msg
+    Note: Database-level constraint tests for file_size and token_count are
+    in test_data_model_integrity.py to avoid duplication.
+    """
     
     def test_validate_positive_integer_with_negative(self):
         """Negative integer should raise ValidationError."""
@@ -212,46 +134,11 @@ class TestInvalidNumericalValues:
 
 
 class TestInvalidEnumValues:
-    """Test that invalid enum values are properly rejected."""
+    """Test that invalid enum values are properly rejected by validators.
     
-    async def test_document_with_invalid_processing_status(self, db_session: AsyncSession, sample_user):
-        """Document with invalid processing_status should raise error."""
-        document = Document(
-            user_id=sample_user.id,
-            filename="test.pdf",
-            file_path="/test.pdf",
-            file_size=1024,
-            content_hash="z" * 64,
-            mime_type="application/pdf",
-            processing_status="INVALID_STATUS",  # INVALID
-        )
-        
-        db_session.add(document)
-        
-        with pytest.raises((IntegrityError, DataError)) as exc_info:
-            await db_session.flush()
-        
-        error_msg = str(exc_info.value).lower()
-        assert "check" in error_msg or "constraint" in error_msg or "violates" in error_msg
-    
-    async def test_summary_with_invalid_type(self, db_session: AsyncSession, sample_document, sample_user):
-        """Summary with invalid summary_type should raise error."""
-        summary = Summary(
-            document_id=sample_document.id,
-            user_id=sample_user.id,
-            summary_text="Test summary",
-            summary_type="INVALID_TYPE",  # INVALID
-            model_name="test-model",
-            chunk_count=5,
-        )
-        
-        db_session.add(summary)
-        
-        with pytest.raises((IntegrityError, DataError)) as exc_info:
-            await db_session.flush()
-        
-        error_msg = str(exc_info.value).lower()
-        assert "check" in error_msg or "constraint" in error_msg or "violates" in error_msg
+    Note: Database-level constraint tests for processing_status and summary_type
+    are in test_data_model_integrity.py to avoid duplication.
+    """
     
     def test_validate_enum_value_with_invalid_value(self):
         """Invalid enum value should raise ValidationError."""
@@ -263,73 +150,12 @@ class TestInvalidEnumValues:
 
 
 class TestInvalidVectorDimensions:
-    """Test that incorrect vector dimensions are properly rejected."""
+    """Test that incorrect vector dimensions are properly rejected by validators.
     
-    async def test_chunk_with_wrong_dimension_vector(self, db_session: AsyncSession, sample_document):
-        """Chunk with wrong embedding dimension should raise error."""
-        from sqlalchemy.exc import StatementError
-        
-        wrong_embedding = np.random.rand(256).tolist()  # WRONG: should be 384
-        
-        chunk = Chunk(
-            document_id=sample_document.id,
-            content="Test content",
-            embedding=wrong_embedding,
-            chunk_index=200,
-            token_count=10,
-        )
-        
-        db_session.add(chunk)
-        
-        with pytest.raises((IntegrityError, DataError, StatementError, ValueError)) as exc_info:
-            await db_session.flush()
-        
-        error_msg = str(exc_info.value).lower()
-        assert "dimension" in error_msg or "vector" in error_msg or "expected" in error_msg
-    
-    async def test_chunk_with_oversized_vector(self, db_session: AsyncSession, sample_document):
-        """Chunk with oversized embedding should raise error."""
-        from sqlalchemy.exc import StatementError
-        
-        oversized_embedding = np.random.rand(512).tolist()  # TOO LARGE
-        
-        chunk = Chunk(
-            document_id=sample_document.id,
-            content="Test content",
-            embedding=oversized_embedding,
-            chunk_index=201,
-            token_count=10,
-        )
-        
-        db_session.add(chunk)
-        
-        with pytest.raises((IntegrityError, DataError, StatementError, ValueError)) as exc_info:
-            await db_session.flush()
-        
-        error_msg = str(exc_info.value).lower()
-        assert "dimension" in error_msg or "vector" in error_msg or "expected" in error_msg
-    
-    async def test_chunk_with_undersized_vector(self, db_session: AsyncSession, sample_document):
-        """Chunk with undersized embedding should raise error."""
-        from sqlalchemy.exc import StatementError
-        
-        undersized_embedding = np.random.rand(128).tolist()  # TOO SMALL
-        
-        chunk = Chunk(
-            document_id=sample_document.id,
-            content="Test content",
-            embedding=undersized_embedding,
-            chunk_index=202,
-            token_count=10,
-        )
-        
-        db_session.add(chunk)
-        
-        with pytest.raises((IntegrityError, DataError, StatementError, ValueError)) as exc_info:
-            await db_session.flush()
-        
-        error_msg = str(exc_info.value).lower()
-        assert "dimension" in error_msg or "vector" in error_msg or "expected" in error_msg
+    Note: Database-level constraint tests for vector dimensions are in
+    test_data_model_integrity.py to avoid duplication. This class focuses on
+    testing the validator functions directly.
+    """
     
     def test_validate_vector_dimension_with_wrong_size(self):
         """Vector with wrong dimension should raise InvalidVectorDimensionError."""
@@ -451,31 +277,11 @@ class TestInvalidStringLengths:
 
 
 class TestEdgeCases:
-    """Test edge cases and boundary conditions."""
+    """Test edge cases and boundary conditions.
     
-    async def test_chunk_with_start_page_greater_than_end_page(
-        self, db_session: AsyncSession, sample_document
-    ):
-        """Chunk with start_page > end_page should raise error."""
-        embedding = np.random.rand(384).tolist()
-        
-        chunk = Chunk(
-            document_id=sample_document.id,
-            content="Test content",
-            embedding=embedding,
-            chunk_index=300,
-            start_page=10,
-            end_page=5,  # INVALID: end < start
-            token_count=10,
-        )
-        
-        db_session.add(chunk)
-        
-        with pytest.raises((IntegrityError, DataError)) as exc_info:
-            await db_session.flush()
-        
-        error_msg = str(exc_info.value).lower()
-        assert "check" in error_msg or "constraint" in error_msg or "violates" in error_msg
+    Note: test_chunk_with_start_page_greater_than_end_page is in 
+    test_data_model_integrity.py as test_invalid_page_order_raises_error.
+    """
     
     async def test_user_with_extremely_long_email(self, db_session: AsyncSession):
         """User with extremely long email should be handled properly."""
@@ -515,3 +321,4 @@ class TestEdgeCases:
         
         error_msg = str(exc_info.value).lower()
         assert "check" in error_msg or "constraint" in error_msg or "violates" in error_msg
+
